@@ -1,6 +1,19 @@
+## Docker Info
+This is a pretty simple attempt to wrap 0perationPrivacy/VoIP into a docker stack, along with a local mongodb and caddy functioning as a reverse proxy.
+### Docker Instructions
+You still need to do all the stuff in twilio (or whatever voip provider you're using) as per the instructions below
+1. Install docker and docker-compose (See https://devcoops.com/install-docker-compose-on-debian-11/ or equiv for whatever OS you're on)
+1. Edit docker-compose.yml 
+1. `docker-compose build`
+1. `docker-compose up -d`
+#### Local mongodb vs hosted mongodb
+- If you'd like to continue to use cloud hosted mongodb, edit the docker-compose.yml as per the comments in the file
+- Alternatively, if you'd like to copy your existing mongodb into the container's mongodb, once the docker stack is running, use the commands in copy_from_existing.sh which you can enter via `docker exec -it mongo /bin/bash`.  This will import all your users, contacts, etc. from the hosted DB.
 
+## Main Instructions
 - For instructions, visit [https://inteltechniques.com/voip.suite.html](https://inteltechniques.com/voip.suite.html)
 - Or the [Wiki](https://github.com/0perationPrivacy/voip/wiki) section.
+
 
 - View the [Changelog](CHANGELOG.md)
 
