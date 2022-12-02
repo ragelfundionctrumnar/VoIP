@@ -1,0 +1,66 @@
+version: '3'
+
+volumes:
+  mongo:
+
+services:
+
+  voip_app:
+    container_name: voip_app
+    build: .
+    restart: unless-stopped
+    environment:
+
+      # Here's an example of a connect string to mongodb.net.  If you do something like this,
+      # comment out the mongo service/volumes/depends-on 
+      # DB: "mongodb+srv://USER:PASSWORD@cluster0.xttyr.mongodb.net/test"
+
+      # make sure user:password and DATABASE matches what's in init-mongo.js
+      DB: "mongodb://tormaulbag:wmakranier@mongo/voip"
+
+      # Do we want randos to be able to use our system?  I'm thinking "off" once things are working
+      SIGNUPS: "off"
+
+      # Make sure that this is the actual URL that a client sees (outside the reverse proxy) 
+      # and ends with a trailing slash.  Needs to match what's in caddy below
+      BASE_URL: https://voip.localhost/
+
+      # Not sure what this is... was in https://github.com/0perationPrivacy/VoIP/blob/main/.env
+      NODE_OPTIONS: "--max_old_space_size=460"
+
+      # Leave this as false.  our reverse-proxy will handle http -> https
+      HTTPS: "false"
+
+      PORT: "3000"
+
+      # This should be generated for each install with something like pwgen -s 20 1
+      COOKIE_KEY: "dpSMUS27tJejzbrOfTbN"
+
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      # Change these if you want.  Just make sure the db name matches what's in init-mongo.js
+      MONGO_INITDB_DATABASE: voip
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: squadiverionvivelawort
+    volumes:
+      - mongo:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+
+  caddy:
+    image: caddy:2.6.2-alpine
+    restart: unless-stopped
+    # For testing this next line can be helpful.  Just add voipsms.localhost to /etc/aliases
+    #command: caddy reverse-proxy --from https://voip.localhost:443 --to http://voip_app:3000
+    command: caddy reverse-proxy --from https://MYFQDN:443 --to http://voip_app:3000
+    ports:
+      - 443:443
+    depends_on:
+      - voip_app
+
+
