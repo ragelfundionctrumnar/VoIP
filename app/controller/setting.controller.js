@@ -397,7 +397,7 @@ exports.getNumber = async (req, res) => {
             } else {
                 res.status(419).send({ status: false, errors: validation.errors, data: [] });
             }
-            
+
         } else if (req.body.type == 'twilio') {
             let rules = {
                 twilio_sid: 'required',
@@ -636,19 +636,29 @@ exports.receiveSms = async (req, res) => {
                 setting: settingCheck._id,
                 media: JSON.stringify(media)
             };
+
             var contact = await Contact.findOne({ user: { $eq: settingCheck.user }, number: { $eq: fromnumber } });
+
             if (contact) {
                 messageData2.contact = contact._id
             } else {
-                var fromnumber2 = fromnumber.slice(-10)
-                // console.log(fromnumber2)
-                var contact2 = await Contact.findOne({ user: { $eq: settingCheck.user }, number: { $eq: fromnumber2 } });
-                // console.log(contact2)
-                if (contact2) {
-                    messageData2.contact = contact2._id
+                fromnumber = fromnumber.slice(-10)
+                contact = await Contact.findOne({ user: { $eq: settingCheck.user }, number: { $eq: fromnumber } });
+                if (contact) {
+                    messageData2.contact = contact._id
                 }
             }
-            global.io.to(settingCheck.user.toString()).emit('user_message', { message: messageText, number: fromnumber });
+
+            global.io.to(settingCheck.user.toString()).emit('user_message', {
+                message: messageText,
+                number: fromnumber,
+                telnyx_number: toNumber,
+                toUser: settingCheck.user,
+                contact,
+                type: 'receive',
+                status: 'received',
+                isview: false,
+            });
             if (settingCheck.emailnotification !== undefined && settingCheck.emailnotification == 'true') {
                 var emailSetting = await Email.findOne({ user: { $eq: settingCheck.user } })
                 if (emailSetting) {
@@ -666,7 +676,8 @@ exports.receiveSms = async (req, res) => {
 
             }
             // global.io.to(settingCheck.number).emit('new_message',{message: messageText, number:fromnumber});
-            Message.create(messageData2);
+            let messageSavedResponse = await Message.create(messageData2);
+            console.log('messageSavedResponse ===:', messageSavedResponse)
         }
         const VoiceResponse = twilio.twiml.VoiceResponse;
         const response = new VoiceResponse();
